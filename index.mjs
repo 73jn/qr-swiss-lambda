@@ -26,11 +26,34 @@ export const handler = async (event) => {
             body: JSON.stringify({ error: "No data provided" })
         };
     }
+
+    // Add data.amount 
+    let sum = 0;
+    data.rows.forEach(row => {
+        sum += parseFloat(row.total.replace('CHF ', '').replace("'", ""));
+    }
+    );
+    // Add TVA
+    const taxRate = 0.077; // 7.7% de TVA
+    const taxAmount = sum * taxRate;
+    // if amount is not equal to taxAmount + sum return error
+    if (data.amount !== taxAmount + sum) {
+        return {
+            statusCode: 400,
+            body: JSON.stringify({ error: "Amount is not equal to taxAmount + sum" })
+        };
+    }
+
+
+
     const rows = data.rows;
     const summary = data.summary;
 
     const pdf = new PDFDocument({ size: "A4" });
-    const qrBill = new SwissQRBill(data);
+    const qrBill = new SwissQRBill(data, {
+        language: "FR"
+    });
+
 
     const stream = new PassThrough();
     qrBill.attachTo(pdf);
@@ -57,7 +80,7 @@ export const handler = async (event) => {
     // Title and date
     pdf.fontSize(14);
     pdf.font("Helvetica-Bold");
-    pdf.text("Rechnung Nr. 1071672", mm2pt(20), mm2pt(100), {
+    pdf.text(`Facture Nr. ${data.bill_number}`, mm2pt(20), mm2pt(100), {
     align: "left",
     width: mm2pt(170)
     });
@@ -66,7 +89,7 @@ export const handler = async (event) => {
 
     pdf.fontSize(11);
     pdf.font("Helvetica");
-    pdf.text(`Musterstadt ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`, {
+    pdf.text(`${data.creditor.city} ${date.getDate()}.${date.getMonth() + 1}.${date.getFullYear()}`, {
     align: "right",
     width: mm2pt(170)
     });
@@ -74,7 +97,6 @@ export const handler = async (event) => {
 
     // Initialisation des variables pour les calculs
     let sumTotal = 0;
-    const taxRate = 0.077; // 7.7% de TVA
 
     // Construction des lignes de la table avec les données
     const tableRows = data.rows.map(row => {
@@ -97,8 +119,8 @@ export const handler = async (event) => {
     backgroundColor: "#4A4D51",
     columns: [
         { text: "Position", width: mm2pt(20) },
-        { text: "Anzahl", width: mm2pt(20) },
-        { text: "Bezeichnung" },
+        { text: "Quantité", width: mm2pt(20) },
+        { text: "Description" },
         { text: "Total", width: mm2pt(30) }
     ],
     font: "Helvetica-Bold",
@@ -107,9 +129,6 @@ export const handler = async (event) => {
     textColor: "#fff",
     verticalAlign: "center"
     });
-
-    // Calcul de la TVA
-    const taxAmount = sumTotal * taxRate;
 
     // Ajouter les lignes de TVA et total final
     tableRows.push(
