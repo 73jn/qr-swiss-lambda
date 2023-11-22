@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "aws-sdk": "^2.1501.0",
+    "pdfkit": "^0.14.0",
+    "stream": "^0.0.2",
+    "swissqrbill": "^4.0.2"
+  }
+}
