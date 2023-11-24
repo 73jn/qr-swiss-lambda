@@ -34,15 +34,21 @@ export const handler = async (event) => {
     }
     );
     // Add TVA
-    const taxRate = 0.077; // 7.7% de TVA
-    const taxAmount = sum * taxRate;
-    // if amount is not equal to taxAmount + sum return error
+    let taxAmount = 0;
+    if (data.vat !== undefined  ) {
+        const taxRate = data.vat/100; // 7.7% de TVA
+        taxAmount = sum * taxRate;
+        // if amount is not equal to taxAmount + sum return error
+    }
     if (data.amount !== taxAmount + sum) {
         return {
             statusCode: 400,
-            body: JSON.stringify({ error: "Amount is not equal to taxAmount + sum" })
+            body: JSON.stringify({ error: "Amount is not equal to taxAmount + sum, amount: " + data.amount + " taxAmount: " + taxAmount + " sum: " + sum })
         };
     }
+
+
+    
 
 
 
@@ -131,28 +137,62 @@ export const handler = async (event) => {
     });
 
     // Ajouter les lignes de TVA et total final
-    tableRows.push(
-    // Ligne pour la TVA
-    {
-        columns: [
-        { text: "", width: mm2pt(20) },
-        { text: "", width: mm2pt(20) },
-        { text: "MwSt. 7.7%" },
-        { text: `CHF ${taxAmount.toFixed(2)}`, width: mm2pt(30) }
-        ],
-        padding: 5
-    },
-    // Ligne pour le total avec TVA
-    {
-        columns: [
-        { text: "", width: mm2pt(20) },
-        { text: "", width: mm2pt(20) },
-        { text: "Total avec TVA", font: "Helvetica-Bold" },
-        { text: `CHF ${(sumTotal + taxAmount).toFixed(2)}`, width: mm2pt(30), font: "Helvetica-Bold" }
-        ],
-        padding: 5
+    if (data.vat !== undefined  ) {
+        tableRows.push(
+        // Vide
+        {
+            columns: [
+            { text: "", width: mm2pt(20) },
+            { text: "", width: mm2pt(20) },
+            { text: "" },
+            { text: "", width: mm2pt(30) }
+            ],
+            padding: 5
+        },
+        // Ligne pour la TVA
+        {
+            columns: [
+            { text: "", width: mm2pt(20) },
+            { text: "", width: mm2pt(20) },
+            { text: `TVA ${data.vat}` },
+            { text: `CHF ${taxAmount.toFixed(2)}`, width: mm2pt(30) }
+            ],
+            padding: 5
+        },
+        // Ligne pour le total avec TVA
+        {
+            columns: [
+            { text: "", width: mm2pt(20) },
+            { text: "", width: mm2pt(20) },
+            { text: "Total avec TVA", font: "Helvetica-Bold" },
+            { text: `CHF ${(sumTotal + taxAmount).toFixed(2)}`, width: mm2pt(30), font: "Helvetica-Bold" }
+            ],
+            padding: 5
+        }
+        );
+    } else {
+        tableRows.push(
+        {
+            columns: [
+            { text: "", width: mm2pt(20) },
+            { text: "", width: mm2pt(20) },
+            { text: "" },
+            { text: "", width: mm2pt(30) }
+            ],
+            padding: 5
+        },
+        // Ligne pour le total avec TVA
+        {
+            columns: [
+            { text: "", width: mm2pt(20) },
+            { text: "", width: mm2pt(20) },
+            { text: "Total", font: "Helvetica-Bold" },
+            { text: `CHF ${sumTotal.toFixed(2)}`, width: mm2pt(30), font: "Helvetica-Bold" }
+            ],
+            padding: 5
+        }
+        );
     }
-    );
 
     // Création de l'objet Table
     const table = new Table({
