@@ -201,34 +201,59 @@ export const handler = async (event) => {
     });
     
     table.attachTo(pdf);
+    const filename = `facture-${data.bill_number}.pdf`;
+
+
+    // À la place de l'upload sur S3, convertissez le stream en base64
+    const buffers = [];
+    stream.on('data', (chunk) => buffers.push(chunk));
+    stream.on('end', () => {
+        const pdfBuffer = Buffer.concat(buffers);
+        const base64pdf = pdfBuffer.toString('base64');
+
+        // Retournez le PDF encodé en base64 dans la réponse
+        return {
+            statusCode: 200,
+            headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': 'attachment; filename=filename',
+            },
+            body: base64pdf,
+            isBase64Encoded: true,
+        };
+    });
 
     pdf.end();
 
-    const params = {
-        Bucket: "swiss-qr-code",
-        Key: "qr-bill.pdf",
-        Body: stream,
-        ContentType: "application/pdf"
-    };
+    // // S3
+    // pdf.end();
 
-    try {
-        const uploadData = await s3.upload(params).promise();
+    // const params = {
+    //     Bucket: "swiss-qr-code",
+    //     Key: "qr-bill.pdf",
+    //     Body: stream,
+    //     ContentType: "application/pdf"
+    // };
 
-        // Générer un URL présigné
-        const signedUrl = await s3.getSignedUrlPromise('getObject', {
-            Bucket: params.Bucket,
-            Key: params.Key,
-            Expires: 60 * 5 // Lien valide pour 5 minutes
-        });
+    // try {
+    //     const uploadData = await s3.upload(params).promise();
 
-        return {
-            statusCode: 200,
-            body: JSON.stringify({ url: signedUrl })
-        };
-    } catch (error) {
-        return {
-            statusCode: 500,
-            body: JSON.stringify(error)
-        };
-    }
+    //     // Générer un URL présigné
+    //     const signedUrl = await s3.getSignedUrlPromise('getObject', {
+    //         Bucket: params.Bucket,
+    //         Key: params.Key,
+    //         Expires: 60 * 5 // Lien valide pour 5 minutes
+    //     });
+
+    //     return {
+    //         statusCode: 200,
+    //         body: JSON.stringify({ url: signedUrl })
+    //     };
+    // } catch (error) {
+    //     return {
+    //         statusCode: 500,
+    //         body: JSON.stringify(error)
+    //     };
+    // }
 };
+
