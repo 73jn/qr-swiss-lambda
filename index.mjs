@@ -129,6 +129,7 @@ export const handler = async (event) => {
 
 
     tableRows.push(
+    // Ajouter une ligne de séparation ( un trait noir ) ce n'est pas une ligne vide
     {
         columns: [
         { text: "", width: mm2pt(20) },
@@ -137,6 +138,18 @@ export const handler = async (event) => {
         ],
         padding: 5
     },
+    {
+        // Ajouter un trait noir
+        backgroundColor : "#000000",
+        columns: [
+        { text: "", width: mm2pt(20) },
+        { text: "" },
+        { text: "", width: mm2pt(30) }
+        ],
+        padding: 5,
+        height: 1
+    },
+
     // Ligne pour le total avec TVA
     {
         columns: [
@@ -147,6 +160,35 @@ export const handler = async (event) => {
         padding: 5
     }
     );
+
+    // Ajouter un texte après : payable sous 30 jours
+    tableRows.push(
+    {
+        columns: [
+        { text: "", width: mm2pt(20) },
+        { text: "" },
+        { text: "", width: mm2pt(30) }
+        ],
+        padding: 5
+    },
+    {
+        columns: [
+        { text: "", width: mm2pt(20) },
+        { text: "" },
+        { text: "", width: mm2pt(30) }
+        ],
+        padding: 5
+    },
+    {
+    columns: [
+        { text: "Payment net à 30 jours", width: mm2pt(100), font: "Helvetica-Bold" },
+        { text: ""},
+        { text: ""}
+    ],
+    padding: 5
+    });
+
+
     
 
     // Création de l'objet Table
