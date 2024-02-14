@@ -41,6 +41,10 @@ export const handler = async (event) => {
         totalAmount += parseFloat(element.total);
     });
 
+    console.log("Total amount: ", totalAmount);
+
+    // Add amount to data
+    data.amount = totalAmount;
 
     
 
@@ -97,11 +101,12 @@ export const handler = async (event) => {
 
     // Construction des lignes de la table avec les données
     const tableRows = data.rows.map(row => {
+        const totalAsNumber = parseFloat(row.total);
         return {
         columns: [
             { text: row.quantity, width: mm2pt(20) },
             { text: row.description },
-            { text: row.total, width: mm2pt(30) }
+            { text: `CHF ${totalAsNumber.toFixed(2)}`, width: mm2pt(30) }
         ],
         padding: 5
         };
@@ -151,29 +156,30 @@ export const handler = async (event) => {
     });
     
     table.attachTo(pdf);
-    const filename = `facture-${data.bill_number}.pdf`;
-
-
-    // À la place de l'upload sur S3, convertissez le stream en base64
-    const buffers = [];
-    stream.on('data', (chunk) => buffers.push(chunk));
-    stream.on('end', () => {
-        const pdfBuffer = Buffer.concat(buffers);
-        const base64pdf = pdfBuffer.toString('base64');
-
-        // Retournez le PDF encodé en base64 dans la réponse
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': 'application/pdf',
-                'Content-Disposition': 'attachment; filename=filename',
-            },
-            body: base64pdf,
-            isBase64Encoded: true,
-        };
-    });
-
+    // const filename = `facture-${data.bill_number}.pdf`;
     pdf.end();
+
+
+    // Convertissez le stream en base64
+    const buffers = [];
+    for await (const chunk of stream) {
+        buffers.push(chunk);
+    }
+    const pdfBuffer = Buffer.concat(buffers);
+    const base64pdf = pdfBuffer.toString('base64');
+
+    // Retournez le PDF encodé en base64 dans la réponse
+    return {
+        statusCode: 200,
+        headers: {
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': 'attachment; filename=qr-bill.pdf',
+        },
+        body: base64pdf,
+        isBase64Encoded: true,
+    };
+
+
 
     // // S3
     // pdf.end();
