@@ -7,25 +7,35 @@ import { Table } from "swissqrbill/pdf";
 const s3 = new AWS.S3();
 
 export const handler = async (event) => {
+    // event = event.replace(/'/g, '"');
     // Extrait les données de l'event
     let data;
+    // If event is a json put it in data
+    if (typeof event === 'string' || event instanceof String) {
 
-    // Vérifier si event.body existe et n'est pas undefined
-    if (event.body) {
-        try {
-            data = JSON.parse(event.body);
-        } catch (error) {
+        // Vérifier si event existe et n'est pas undefined
+        if (event.body) {
+            try {
+                data = JSON.parse(event.body);
+            } catch (error) {
+                console.log("Invalid JSON format");
+                return {
+                    statusCode: 400,
+                    body: JSON.stringify({ error: "Invalid JSON format" })
+                };
+            }
+        } else {
+            console.log("No data provided");
             return {
                 statusCode: 400,
-                body: JSON.stringify({ error: "Invalid JSON format" })
+                body: JSON.stringify({ error: "No data provided" })
             };
         }
-    } else {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ error: "No data provided" })
-        };
     }
+    else {
+        data = event;
+    }
+
 
     // Get all rows total 
     // "rows": [
@@ -46,17 +56,30 @@ export const handler = async (event) => {
     // Add amount to data
     data.amount = totalAmount;
 
-    
+
 
 
 
     const rows = data.rows;
     const summary = data.summary;
+    var mem_name;
+    if (data.debtor.name) {
+        mem_name = data.debtor.name;
+    }
+    if (!data.debtor.name || !data.debtor.address || !data.debtor.zip || !data.debtor.city || !data.debtor.country) {
+        delete data.debtor;
+    }
 
     const pdf = new PDFDocument({ size: "A4" });
     const qrBill = new SwissQRBill(data, {
         language: "FR"
     });
+
+    if (mem_name && !data.debtor) {
+        // Réinitialiser data.debtor si nécessaire avant de réaffecter des propriétés
+        data.debtor = {};
+        data.debtor.name = mem_name;
+    }
 
 
     const stream = new PassThrough();
@@ -73,13 +96,20 @@ export const handler = async (event) => {
       width: mm2pt(100)
     });
     
-    pdf.fontSize(12);
-    pdf.font("Helvetica");
-    pdf.text(`${data.debtor.name}\n${data.debtor.address} ${data.debtor.buildingNumber}\n${data.debtor.zip} ${data.debtor.city}`, mm2pt(130), mm2pt(60), {
-      align: "left",
-      height: mm2pt(50),
-      width: mm2pt(70)
-    });
+    if (data.debtor) {
+        pdf.fontSize(12);
+        pdf.font("Helvetica");
+        pdf.text(
+          `${data.debtor.name ?? ""}\n${data.debtor.address ?? ""} ${data.debtor.buildingNumber ?? ""}\n${data.debtor.zip ?? ""} ${data.debtor.city ?? ""}`, 
+          mm2pt(130), 
+          mm2pt(60), 
+          {
+            align: "left",
+            height: mm2pt(50),
+            width: mm2pt(70)
+          }
+        );
+    }
 
     // Title and date
     pdf.fontSize(14);
@@ -181,7 +211,7 @@ export const handler = async (event) => {
     },
     {
     columns: [
-        { text: "Payment net à 30 jours", width: mm2pt(100), font: "Helvetica-Bold" },
+        { text: "Paiement net à 30 jours", width: mm2pt(100), font: "Helvetica-Bold" },
         { text: ""},
         { text: ""}
     ],
